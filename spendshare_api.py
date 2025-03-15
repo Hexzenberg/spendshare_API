@@ -3,23 +3,19 @@
 # deactivate 
 
 import joblib
-import requests
+import os
+import math
 from flask import Flask, request, jsonify
 from flask_cors import CORS  
 
 app = Flask(__name__)
 CORS(app)  
 
-# Google Drive File ID to download the model
-FILE_ID = "1JLIHJpaYfTkrTUKKTiiQPHV6pXcG7KOw"
-DOWNLOAD_URL = f"https://drive.google.com/uc?id={FILE_ID}"
-
+# Load model as a local file 
 model_path = "catboost_model.pkl"
-response = requests.get(DOWNLOAD_URL)
-with open(model_path, "wb") as file:
-    file.write(response.content)
+if not os.path.exists(model_path):
+    raise FileNotFoundError("Model file not found. Please ensure 'catboost_model.pkl' is uploaded to your repository.")
 
-# Loading the model
 model = joblib.load(model_path)
 
 @app.route("/")
@@ -30,9 +26,8 @@ def home():
 def predict():
     try:
         data = request.get_json()
-        
+
         # Convert month to sin and cos values
-        import math
         month = data.pop("month")  
         month_sin = math.sin(2 * math.pi * (month / 12))
         month_cos = math.cos(2 * math.pi * (month / 12))
@@ -47,4 +42,6 @@ def predict():
         return jsonify({"error": str(e)})
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Render provides a dynamic PORT, so use os.environ.get("PORT")
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
